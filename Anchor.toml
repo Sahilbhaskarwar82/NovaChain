@@ -1,0 +1,21 @@
+[toolchain]
+
+[features]
+seeds = true
+skip-lint = false
+
+[programs.localnet]
+novachain = "E5tjhztUxbo3Aa6Up8wH4NucXDzhcez56haLm5DbShiw"
+
+[programs.devnet]
+novachain = "E5tjhztUxbo3Aa6Up8wH4NucXDzhcez56haLm5DbShiw"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "Localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

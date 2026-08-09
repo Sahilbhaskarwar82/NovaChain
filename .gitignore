@@ -32,3 +32,9 @@ yarn-debug.log*
 yarn-error.log*
 .DS_Store
 Thumbs.db
+
+# Solana Local Validator Ledger
+test-ledger/
+
+# Anchor upgrade buffer keypair (auto-generated, not needed in git)
+target/deploy/*-upgrade-buffer.json
