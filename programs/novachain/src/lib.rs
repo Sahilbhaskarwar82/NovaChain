@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("E5tjhztUxbo3Aa6Up8wH4NucXDzhcez56haLm5DbShiw");
+declare_id!("DBfVgqx6nkAYYGjMQbodBLVgXJa8tDztzZyiragHXxZc");
 
 // ─────────────────────────────────────────────
 //  State definitions
@@ -14,10 +14,18 @@ pub enum Role {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+pub enum UserStatus {
+    Active,
+    Revoked,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
 pub enum EquipmentStatus {
     Available,
+    Pending,
     Reserved,
     InUse,
+    Decommissioned,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
@@ -25,6 +33,8 @@ pub enum ReservationStatus {
     Pending,
     Approved,
     Rejected,
+    Cancelled,
+    Completed,
 }
 
 #[account]
@@ -40,6 +50,7 @@ pub struct Researcher {
     pub department: String,
     pub name: String,
     pub sbt_mint: Pubkey,
+    pub status: UserStatus,
 }
 
 #[account]
@@ -47,6 +58,9 @@ pub struct Equipment {
     pub name: String,
     pub category: String,
     pub lab: String,
+    pub serial_number: String,
+    pub department: String,
+    pub uri: String,
     pub status: EquipmentStatus,
     pub cnft_asset_id: [u8; 32],
 }
@@ -68,10 +82,14 @@ pub struct Reservation {
 pub enum ErrorCode {
     #[msg("You are not authorized to perform this action.")]
     Unauthorized,
-    #[msg("The equipment is currently not available for reservation.")]
+    #[msg("Your account has been revoked.")]
+    AccountRevoked,
+    #[msg("The equipment is currently not available.")]
     EquipmentNotAvailable,
     #[msg("Invalid time range: start must be before end.")]
     InvalidTimeRange,
+    #[msg("The reservation time has not yet ended.")]
+    ReservationNotEnded,
 }
 
 // ─────────────────────────────────────────────
@@ -82,7 +100,6 @@ pub enum ErrorCode {
 pub mod novachain {
     use super::*;
 
-    /// Initialize the global state and set the admin authority.
     pub fn initialize(ctx: Context<Initialize>, merkle_tree: Pubkey) -> Result<()> {
         let gs = &mut ctx.accounts.global_state;
         gs.admin = ctx.accounts.admin.key();
@@ -90,7 +107,6 @@ pub mod novachain {
         Ok(())
     }
 
-    /// Admin registers a Faculty or Researcher and mints their Soulbound Identity.
     pub fn register_user(
         ctx: Context<RegisterUser>,
         role: Role,
@@ -104,78 +120,140 @@ pub mod novachain {
         r.department = department;
         r.name = name;
         r.sbt_mint = sbt_mint;
-        // CPI to Token-2022 for NonTransferable mint goes here
+        r.status = UserStatus::Active;
         Ok(())
     }
 
-    /// Admin registers lab equipment and mints a Compressed NFT via Bubblegum.
+    pub fn revoke_user(ctx: Context<UpdateUserStatus>) -> Result<()> {
+        ctx.accounts.researcher.status = UserStatus::Revoked;
+        Ok(())
+    }
+
+    pub fn reinstate_user(ctx: Context<UpdateUserStatus>) -> Result<()> {
+        ctx.accounts.researcher.status = UserStatus::Active;
+        Ok(())
+    }
+
+    pub fn update_user_role(
+        ctx: Context<UpdateUserRole>,
+        new_role: Role,
+        new_department: String,
+    ) -> Result<()> {
+        let r = &mut ctx.accounts.researcher;
+        r.role = new_role;
+        r.department = new_department;
+        Ok(())
+    }
+
     pub fn register_equipment(
         ctx: Context<RegisterEquipment>,
         name: String,
         category: String,
         lab: String,
+        serial_number: String,
+        department: String,
+        uri: String,
         cnft_asset_id: [u8; 32],
     ) -> Result<()> {
         let e = &mut ctx.accounts.equipment;
         e.name = name;
         e.category = category;
         e.lab = lab;
+        e.serial_number = serial_number;
+        e.department = department;
+        e.uri = uri;
         e.status = EquipmentStatus::Available;
         e.cnft_asset_id = cnft_asset_id;
-        // CPI to Bubblegum for cNFT mint goes here
         Ok(())
     }
 
-    /// Researcher requests a reservation for a piece of equipment.
+    pub fn decommission_equipment(ctx: Context<DecommissionEquipment>) -> Result<()> {
+        ctx.accounts.equipment.status = EquipmentStatus::Decommissioned;
+        Ok(())
+    }
+
     pub fn create_reservation(
         ctx: Context<CreateReservation>,
         _reservation_id: String,
         start_time: i64,
         end_time: i64,
     ) -> Result<()> {
+        require!(
+            ctx.accounts.researcher.status == UserStatus::Active,
+            ErrorCode::AccountRevoked
+        );
         require!(start_time < end_time, ErrorCode::InvalidTimeRange);
         require!(
             ctx.accounts.equipment.status == EquipmentStatus::Available,
             ErrorCode::EquipmentNotAvailable
         );
+
         let res = &mut ctx.accounts.reservation;
         res.equipment_pda = ctx.accounts.equipment.key();
         res.researcher_pda = ctx.accounts.researcher.key();
         res.start_time = start_time;
         res.end_time = end_time;
         res.status = ReservationStatus::Pending;
+        
+        // Lock equipment while pending
+        ctx.accounts.equipment.status = EquipmentStatus::Pending;
+
         Ok(())
     }
 
-    /// Faculty approves or rejects a pending reservation.
     pub fn approve_reservation(ctx: Context<ApproveReservation>, approve: bool) -> Result<()> {
         require!(
-            ctx.accounts.faculty.role == Role::Faculty,
+            ctx.accounts.faculty.role == Role::Faculty && ctx.accounts.faculty.status == UserStatus::Active,
             ErrorCode::Unauthorized
         );
         let res = &mut ctx.accounts.reservation;
         let eq = &mut ctx.accounts.equipment;
+        
         if approve {
             res.status = ReservationStatus::Approved;
             eq.status = EquipmentStatus::Reserved;
         } else {
             res.status = ReservationStatus::Rejected;
+            eq.status = EquipmentStatus::Available;
         }
         Ok(())
     }
 
-    /// Faculty issues a research publication cNFT for a researcher.
+    pub fn cancel_reservation(ctx: Context<CancelReservation>) -> Result<()> {
+        require!(
+            ctx.accounts.reservation.status == ReservationStatus::Pending || 
+            ctx.accounts.reservation.status == ReservationStatus::Approved,
+            ErrorCode::Unauthorized
+        );
+        
+        ctx.accounts.reservation.status = ReservationStatus::Cancelled;
+        ctx.accounts.equipment.status = EquipmentStatus::Available;
+        Ok(())
+    }
+
+    pub fn complete_reservation(ctx: Context<CompleteReservation>) -> Result<()> {
+        let clock = Clock::get()?;
+        require!(
+            clock.unix_timestamp > ctx.accounts.reservation.end_time,
+            ErrorCode::ReservationNotEnded
+        );
+
+        ctx.accounts.reservation.status = ReservationStatus::Completed;
+        ctx.accounts.equipment.status = EquipmentStatus::Available;
+        Ok(())
+    }
+
     pub fn publish_paper(
         ctx: Context<PublishPaper>,
         _title: String,
         _doi: String,
+        _uri: String,
         _cnft_asset_id: [u8; 32],
     ) -> Result<()> {
         require!(
-            ctx.accounts.faculty.role == Role::Faculty,
+            ctx.accounts.faculty.role == Role::Faculty && ctx.accounts.faculty.status == UserStatus::Active,
             ErrorCode::Unauthorized
         );
-        // CPI to Bubblegum for publication cNFT mint goes here
         Ok(())
     }
 }
@@ -210,12 +288,30 @@ pub struct RegisterUser<'info> {
     #[account(
         init,
         payer = admin,
-        space = 8 + 32 + 1 + 4 + 64 + 4 + 64 + 32,
+        space = 8 + 32 + 1 + 4 + 100 + 4 + 100 + 32 + 1,
         seeds = [b"researcher", user_wallet.key().as_ref()],
         bump
     )]
     pub researcher: Account<'info, Researcher>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateUserStatus<'info> {
+    #[account(has_one = admin)]
+    pub global_state: Account<'info, GlobalState>,
+    pub admin: Signer<'info>,
+    #[account(mut)]
+    pub researcher: Account<'info, Researcher>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateUserRole<'info> {
+    #[account(has_one = admin)]
+    pub global_state: Account<'info, GlobalState>,
+    pub admin: Signer<'info>,
+    #[account(mut)]
+    pub researcher: Account<'info, Researcher>,
 }
 
 #[derive(Accounts)]
@@ -228,12 +324,21 @@ pub struct RegisterEquipment<'info> {
     #[account(
         init,
         payer = admin,
-        space = 8 + 4 + 64 + 4 + 64 + 4 + 64 + 1 + 32,
+        space = 8 + 4 + 100 + 4 + 100 + 4 + 100 + 4 + 100 + 4 + 100 + 4 + 200 + 1 + 32,
         seeds = [b"equipment", name.as_bytes()],
         bump
     )]
     pub equipment: Account<'info, Equipment>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct DecommissionEquipment<'info> {
+    #[account(has_one = admin)]
+    pub global_state: Account<'info, GlobalState>,
+    pub admin: Signer<'info>,
+    #[account(mut)]
+    pub equipment: Account<'info, Equipment>,
 }
 
 #[derive(Accounts)]
@@ -268,6 +373,35 @@ pub struct ApproveReservation<'info> {
     )]
     pub reservation: Account<'info, Reservation>,
     #[account(mut)]
+    pub equipment: Account<'info, Equipment>,
+}
+
+#[derive(Accounts)]
+pub struct CancelReservation<'info> {
+    pub researcher_wallet: Signer<'info>,
+    #[account(constraint = researcher.authority == researcher_wallet.key() @ ErrorCode::Unauthorized)]
+    pub researcher: Account<'info, Researcher>,
+    #[account(
+        mut,
+        constraint = reservation.researcher_pda == researcher.key() @ ErrorCode::Unauthorized
+    )]
+    pub reservation: Account<'info, Reservation>,
+    #[account(
+        mut,
+        constraint = reservation.equipment_pda == equipment.key() @ ErrorCode::Unauthorized
+    )]
+    pub equipment: Account<'info, Equipment>,
+}
+
+#[derive(Accounts)]
+pub struct CompleteReservation<'info> {
+    // Anyone can crank this instruction if the blocktime is valid
+    #[account(mut)]
+    pub reservation: Account<'info, Reservation>,
+    #[account(
+        mut,
+        constraint = reservation.equipment_pda == equipment.key() @ ErrorCode::Unauthorized
+    )]
     pub equipment: Account<'info, Equipment>,
 }
 

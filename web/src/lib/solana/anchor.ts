@@ -3,7 +3,7 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import idl from "@/idl/novachain.json";
 
 export const PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_PROGRAM_ID || "E5tjhztUxbo3Aa6Up8wH4NucXDzhcez56haLm5DbShiw"
+  process.env.NEXT_PUBLIC_PROGRAM_ID || "DBfVgqx6nkAYYGjMQbodBLVgXJa8tDztzZyiragHXxZc"
 );
 
 export const RPC_URL =

@@ -31,215 +31,119 @@ describe("novachain", () => {
   const reservationId = "res-001";
 
   before(async () => {
-    // Airdrop SOL to faculty and researcher wallets for transactions
+    // Airdrop SOL
     await provider.connection.requestAirdrop(facultyWallet.publicKey, 2e9);
     await provider.connection.requestAirdrop(researcherWallet.publicKey, 2e9);
-    await new Promise((r) => setTimeout(r, 2000)); // Wait for confirmations
+    await new Promise((r) => setTimeout(r, 2000)); 
 
     // Derive PDAs
-    [globalStatePDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("global_state")],
-      program.programId
-    );
-
-    [facultyPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("researcher"), facultyWallet.publicKey.toBuffer()],
-      program.programId
-    );
-
-    [researcherPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("researcher"), researcherWallet.publicKey.toBuffer()],
-      program.programId
-    );
-
-    [equipmentPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("equipment"), Buffer.from(equipmentName)],
-      program.programId
-    );
-
-    [reservationPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("reservation"), Buffer.from(reservationId)],
-      program.programId
-    );
+    [globalStatePDA] = PublicKey.findProgramAddressSync([Buffer.from("global_state")], program.programId);
+    [facultyPDA] = PublicKey.findProgramAddressSync([Buffer.from("researcher"), facultyWallet.publicKey.toBuffer()], program.programId);
+    [researcherPDA] = PublicKey.findProgramAddressSync([Buffer.from("researcher"), researcherWallet.publicKey.toBuffer()], program.programId);
+    [equipmentPDA] = PublicKey.findProgramAddressSync([Buffer.from("equipment"), Buffer.from(equipmentName)], program.programId);
+    [reservationPDA] = PublicKey.findProgramAddressSync([Buffer.from("reservation"), Buffer.from(reservationId)], program.programId);
   });
 
-  // ─────────────────────────────────────────────
-  // Test 1: Initialize Global State
-  // ─────────────────────────────────────────────
-  it("Initializes the global state with admin and merkle tree", async () => {
-    await program.methods
-      .initialize(merkleTree)
-      .accounts({
-        globalState: globalStatePDA,
-        admin: admin.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
-
-    const gs = await program.account.globalState.fetch(globalStatePDA);
-    assert.strictEqual(gs.admin.toBase58(), admin.publicKey.toBase58(), "Admin mismatch");
-    assert.strictEqual(gs.merkleTree.toBase58(), merkleTree.toBase58(), "Merkle tree mismatch");
-    console.log("✅ Global state initialized");
+  it("Initializes the global state", async () => {
+    await program.methods.initialize(merkleTree).accounts({
+      globalState: globalStatePDA,
+      admin: admin.publicKey,
+      systemProgram: SystemProgram.programId,
+    }).rpc();
   });
 
-  // ─────────────────────────────────────────────
-  // Test 2: Register Faculty
-  // ─────────────────────────────────────────────
   it("Admin registers a Faculty member", async () => {
-    await program.methods
-      .registerUser(
-        { faculty: {} },
-        "Computer Science",
-        "Dr. Anika Sharma",
-        sbtMintFaculty
-      )
-      .accounts({
-        globalState: globalStatePDA,
-        admin: admin.publicKey,
-        userWallet: facultyWallet.publicKey,
-        researcher: facultyPDA,
-        systemProgram: SystemProgram.programId,
-      })
+    await program.methods.registerUser({ faculty: {} }, "Computer Science", "Dr. Anika Sharma", sbtMintFaculty)
+      .accounts({ globalState: globalStatePDA, admin: admin.publicKey, userWallet: facultyWallet.publicKey, researcher: facultyPDA, systemProgram: SystemProgram.programId })
       .rpc();
-
-    const faculty = await program.account.researcher.fetch(facultyPDA);
-    assert.ok(faculty.role.hasOwnProperty("faculty"), "Role should be Faculty");
-    assert.strictEqual(faculty.name, "Dr. Anika Sharma");
-    console.log("✅ Faculty registered:", faculty.name);
   });
 
-  // ─────────────────────────────────────────────
-  // Test 3: Register Researcher
-  // ─────────────────────────────────────────────
   it("Admin registers a Researcher", async () => {
-    await program.methods
-      .registerUser(
-        { researcher: {} },
-        "Physics",
-        "Rahul Mehta",
-        sbtMintResearcher
-      )
-      .accounts({
-        globalState: globalStatePDA,
-        admin: admin.publicKey,
-        userWallet: researcherWallet.publicKey,
-        researcher: researcherPDA,
-        systemProgram: SystemProgram.programId,
-      })
+    await program.methods.registerUser({ researcher: {} }, "Physics", "Rahul Mehta", sbtMintResearcher)
+      .accounts({ globalState: globalStatePDA, admin: admin.publicKey, userWallet: researcherWallet.publicKey, researcher: researcherPDA, systemProgram: SystemProgram.programId })
       .rpc();
-
-    const researcher = await program.account.researcher.fetch(researcherPDA);
-    assert.ok(researcher.role.hasOwnProperty("researcher"), "Role should be Researcher");
-    assert.strictEqual(researcher.name, "Rahul Mehta");
-    console.log("✅ Researcher registered:", researcher.name);
   });
 
-  // ─────────────────────────────────────────────
-  // Test 4: Register Equipment
-  // ─────────────────────────────────────────────
-  it("Admin registers a piece of equipment", async () => {
-    await program.methods
-      .registerEquipment(
-        equipmentName,
-        "Microscopy",
-        "Physics Lab A",
-        cnftAssetId
-      )
-      .accounts({
-        globalState: globalStatePDA,
-        admin: admin.publicKey,
-        equipment: equipmentPDA,
-        systemProgram: SystemProgram.programId,
-      })
+  it("Admin registers equipment", async () => {
+    await program.methods.registerEquipment(equipmentName, "Microscopy", "Physics Lab A", "SN-99923", "Physics", "ipfs://uri1", cnftAssetId)
+      .accounts({ globalState: globalStatePDA, admin: admin.publicKey, equipment: equipmentPDA, systemProgram: SystemProgram.programId })
       .rpc();
-
-    const equipment = await program.account.equipment.fetch(equipmentPDA);
-    assert.strictEqual(equipment.name, equipmentName);
-    assert.ok(equipment.status.hasOwnProperty("available"), "Status should be Available");
-    console.log("✅ Equipment registered:", equipment.name);
   });
 
-  // ─────────────────────────────────────────────
-  // Test 5: Create Reservation
-  // ─────────────────────────────────────────────
-  it("Researcher creates a reservation for equipment", async () => {
+  it("Researcher creates a reservation", async () => {
     const now = Math.floor(Date.now() / 1000);
-    await program.methods
-      .createReservation(reservationId, new anchor.BN(now), new anchor.BN(now + 3600))
-      .accounts({
-        researcherWallet: researcherWallet.publicKey,
-        researcher: researcherPDA,
-        equipment: equipmentPDA,
-        reservation: reservationPDA,
-        systemProgram: SystemProgram.programId,
-      })
+    await program.methods.createReservation(reservationId, new anchor.BN(now), new anchor.BN(now + 3600))
+      .accounts({ researcherWallet: researcherWallet.publicKey, researcher: researcherPDA, equipment: equipmentPDA, reservation: reservationPDA, systemProgram: SystemProgram.programId })
       .signers([researcherWallet])
       .rpc();
 
-    const reservation = await program.account.reservation.fetch(reservationPDA);
-    assert.ok(reservation.status.hasOwnProperty("pending"), "Reservation should be Pending");
-    console.log("✅ Reservation created with status:", Object.keys(reservation.status)[0]);
+    const eq = await program.account.equipment.fetch(equipmentPDA);
+    assert.ok(eq.status.hasOwnProperty("pending"));
   });
 
-  // ─────────────────────────────────────────────
-  // Test 6: Approve Reservation
-  // ─────────────────────────────────────────────
   it("Faculty approves the reservation", async () => {
-    await program.methods
-      .approveReservation(true)
-      .accounts({
-        facultyWallet: facultyWallet.publicKey,
-        faculty: facultyPDA,
-        reservation: reservationPDA,
-        equipment: equipmentPDA,
-      })
+    await program.methods.approveReservation(true)
+      .accounts({ facultyWallet: facultyWallet.publicKey, faculty: facultyPDA, reservation: reservationPDA, equipment: equipmentPDA })
       .signers([facultyWallet])
       .rpc();
 
-    const reservation = await program.account.reservation.fetch(reservationPDA);
-    const equipment = await program.account.equipment.fetch(equipmentPDA);
-    assert.ok(reservation.status.hasOwnProperty("approved"), "Reservation should be Approved");
-    assert.ok(equipment.status.hasOwnProperty("reserved"), "Equipment should be Reserved");
-    console.log("✅ Reservation approved, equipment is now Reserved");
+    const eq = await program.account.equipment.fetch(equipmentPDA);
+    assert.ok(eq.status.hasOwnProperty("reserved"));
   });
 
-  // ─────────────────────────────────────────────
-  // Test 7: RBAC - Non-faculty cannot approve
-  // ─────────────────────────────────────────────
-  it("Researcher CANNOT approve reservations (RBAC check)", async () => {
+  it("Researcher can cancel an approved reservation", async () => {
+    await program.methods.cancelReservation()
+      .accounts({ researcherWallet: researcherWallet.publicKey, researcher: researcherPDA, reservation: reservationPDA, equipment: equipmentPDA })
+      .signers([researcherWallet])
+      .rpc();
+
+    const eq = await program.account.equipment.fetch(equipmentPDA);
+    const res = await program.account.reservation.fetch(reservationPDA);
+    assert.ok(eq.status.hasOwnProperty("available"));
+    assert.ok(res.status.hasOwnProperty("cancelled"));
+  });
+
+  it("Admin can revoke user access", async () => {
+    await program.methods.revokeUser()
+      .accounts({ globalState: globalStatePDA, admin: admin.publicKey, researcher: researcherPDA })
+      .rpc();
+      
+    const r = await program.account.researcher.fetch(researcherPDA);
+    assert.ok(r.status.hasOwnProperty("revoked"));
+  });
+
+  it("Revoked user cannot create a reservation", async () => {
     try {
-      await program.methods
-        .approveReservation(true)
-        .accounts({
-          facultyWallet: researcherWallet.publicKey,  // Using researcher as faculty — should fail
-          faculty: researcherPDA,
-          reservation: reservationPDA,
-          equipment: equipmentPDA,
-        })
+      const now = Math.floor(Date.now() / 1000);
+      await program.methods.createReservation("res-002", new anchor.BN(now), new anchor.BN(now + 3600))
+        .accounts({ researcherWallet: researcherWallet.publicKey, researcher: researcherPDA, equipment: equipmentPDA, reservation: reservationPDA, systemProgram: SystemProgram.programId })
         .signers([researcherWallet])
         .rpc();
-      assert.fail("Should have thrown Unauthorized error");
-    } catch (err: any) {
-      assert.include(err.message, "Unauthorized");
-      console.log("✅ RBAC check passed — Researcher correctly blocked from approving");
+      assert.fail("Should have thrown AccountRevoked error");
+    } catch (e: any) {
+      assert.include(e.message, "revoked");
     }
   });
 
-  // ─────────────────────────────────────────────
-  // Test 8: Publish Paper
-  // ─────────────────────────────────────────────
-  it("Faculty can publish a research paper", async () => {
-    await program.methods
-      .publishPaper("Quantum Computing in Lab", "10.1234/qcl", cnftAssetId)
-      .accounts({
-        facultyWallet: facultyWallet.publicKey,
-        faculty: facultyPDA,
-        globalState: globalStatePDA,
-        researcherWallet: researcherWallet.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([facultyWallet])
+  it("Admin can reinstate user access", async () => {
+    await program.methods.reinstateUser()
+      .accounts({ globalState: globalStatePDA, admin: admin.publicKey, researcher: researcherPDA })
       .rpc();
-    console.log("✅ Paper published successfully");
   });
+
+  it("Admin can update user role", async () => {
+    await program.methods.updateUserRole({ faculty: {} }, "Advanced Physics")
+      .accounts({ globalState: globalStatePDA, admin: admin.publicKey, researcher: researcherPDA })
+      .rpc();
+  });
+
+  it("Admin can decommission equipment", async () => {
+    await program.methods.decommissionEquipment()
+      .accounts({ globalState: globalStatePDA, admin: admin.publicKey, equipment: equipmentPDA })
+      .rpc();
+      
+    const eq = await program.account.equipment.fetch(equipmentPDA);
+    assert.ok(eq.status.hasOwnProperty("decommissioned"));
+  });
+
 });

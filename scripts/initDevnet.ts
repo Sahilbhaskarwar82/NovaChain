@@ -24,6 +24,7 @@ const program = new Program(idl, provider) as any;
 
 async function main() {
   console.log("Admin Wallet:", adminKeypair.publicKey.toBase58());
+  console.log("Program ID:  DBfVgqx6nkAYYGjMQbodBLVgXJa8tDztzZyiragHXxZc");
   
   const [globalStatePDA] = PublicKey.findProgramAddressSync(
     [Buffer.from("global_state")],
@@ -33,13 +34,12 @@ async function main() {
   try {
     const existingState = await program.account.globalState.fetch(globalStatePDA);
     console.log("✅ Contract is already initialized!");
-    console.log("Admin on-chain is:", existingState.admin.toBase58());
+    console.log("Admin on-chain:", existingState.admin.toBase58());
     return;
   } catch (e) {
-    console.log("Global state not found. Initializing now on Devnet...");
+    console.log("Global state not found. Initializing on Devnet...");
   }
 
-  // Dummy Merkle Tree for Devnet initialization
   const dummyTree = Keypair.generate().publicKey;
 
   try {

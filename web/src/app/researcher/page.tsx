@@ -11,7 +11,7 @@ import {
   getReservationPDA 
 } from "@/lib/solana/anchor";
 import { motion } from "framer-motion";
-import { Microscope, Calendar, Clock } from "lucide-react";
+import { Microscope, Calendar, Clock, List, XCircle, CheckCircle2 } from "lucide-react";
 
 type Equipment = {
   publicKey: PublicKey;
@@ -23,11 +23,23 @@ type Equipment = {
   };
 };
 
+type Reservation = {
+  publicKey: PublicKey;
+  account: {
+    equipmentPda: PublicKey;
+    researcherPda: PublicKey;
+    startTime: any;
+    endTime: any;
+    status: any;
+  };
+};
+
 export default function ResearcherDashboard() {
   const { publicKey } = useWallet();
   const anchorWallet = useAnchorWallet();
 
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
+  const [myReservations, setMyReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Booking State
@@ -35,13 +47,25 @@ export default function ResearcherDashboard() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [durationHours, setDurationHours] = useState("2");
 
-  const fetchEquipment = async () => {
-    if (!anchorWallet) return;
+  const fetchData = async () => {
+    if (!anchorWallet || !publicKey) return;
     try {
       const provider = new AnchorProvider(connection, anchorWallet, {});
       const program = getProgram(provider);
-      const res = await program.account.equipment.all();
-      setEquipmentList(res as any);
+      
+      const eq = await program.account.equipment.all();
+      setEquipmentList(eq as any);
+
+      const [myPDA] = getResearcherPDA(publicKey);
+      const res = await program.account.reservation.all([
+        {
+          memcmp: {
+            offset: 8 + 32, // skip discriminator and equipment_pda
+            bytes: myPDA.toBase58(),
+          },
+        },
+      ]);
+      setMyReservations(res as any);
     } catch (e) {
       console.error(e);
     } finally {
@@ -50,7 +74,7 @@ export default function ResearcherDashboard() {
   };
 
   useEffect(() => {
-    if (anchorWallet) fetchEquipment();
+    if (anchorWallet) fetchData();
   }, [anchorWallet]);
 
   const handleBooking = async (e: React.FormEvent) => {
@@ -82,11 +106,48 @@ export default function ResearcherDashboard() {
 
       alert("Reservation requested! Waiting for faculty approval.");
       setSelectedEq(null);
-      fetchEquipment();
+      fetchData();
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     } finally {
       setBookingLoading(false);
+    }
+  };
+
+  const handleCancel = async (reservationPDA: PublicKey, equipmentPDA: PublicKey) => {
+    if (!anchorWallet || !publicKey) return;
+    try {
+      const provider = new AnchorProvider(connection, anchorWallet, {});
+      const program = getProgram(provider);
+      const [researcherPDA] = getResearcherPDA(publicKey);
+
+      await program.methods.cancelReservation().accounts({
+        researcherWallet: publicKey,
+        researcher: researcherPDA,
+        reservation: reservationPDA,
+        equipment: equipmentPDA,
+      }).rpc();
+
+      fetchData();
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  const handleComplete = async (reservationPDA: PublicKey, equipmentPDA: PublicKey) => {
+    if (!anchorWallet || !publicKey) return;
+    try {
+      const provider = new AnchorProvider(connection, anchorWallet, {});
+      const program = getProgram(provider);
+
+      await program.methods.completeReservation().accounts({
+        reservation: reservationPDA,
+        equipment: equipmentPDA,
+      }).rpc();
+
+      fetchData();
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
     }
   };
 
@@ -101,52 +162,105 @@ export default function ResearcherDashboard() {
           <Microscope className="text-cyan-400 w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-white">Equipment Catalog</h1>
-          <p className="text-slate-400 mt-1">Discover and book high-value lab instruments.</p>
+          <h1 className="text-3xl font-bold text-white">Equipment Catalog & Booking</h1>
+          <p className="text-slate-400 mt-1">Discover, book, and manage your lab instrument reservations.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Equipment Grid */}
-        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {loading ? (
-             <div className="col-span-2 text-slate-400">Loading catalog...</div>
-          ) : equipmentList.length === 0 ? (
-             <div className="col-span-2 text-slate-500 italic">No equipment registered yet.</div>
-          ) : (
-            equipmentList.map((eq, i) => {
-              const isAvailable = eq.account.status.available !== undefined;
-              return (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }} 
-                  animate={{ opacity: 1, y: 0 }} 
-                  transition={{ delay: i * 0.05 }}
-                  key={eq.publicKey.toBase58()} 
-                  onClick={() => isAvailable && setSelectedEq(eq)}
-                  className={`glass-card p-6 cursor-pointer transition-all ${isAvailable ? 'hover:border-cyan-500/50 hover:bg-white/10' : 'opacity-50 grayscale cursor-not-allowed'}`}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
-                      <Microscope className="w-5 h-5 text-slate-300" />
+        {/* Left Column (Equipment & My Reservations) */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <List className="text-emerald-400" />
+              <h2 className="text-xl font-semibold">My Reservations</h2>
+            </div>
+            <div className="space-y-4">
+              {loading ? (
+                <div className="text-slate-400 text-sm">Loading...</div>
+              ) : myReservations.length === 0 ? (
+                <div className="text-slate-500 italic text-sm">No reservations found.</div>
+              ) : (
+                myReservations.map(res => {
+                  const statusLabel = Object.keys(res.account.status)[0];
+                  return (
+                    <div key={res.publicKey.toBase58()} className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-white mb-1">
+                          Equipment: {res.account.equipmentPda.toBase58().slice(0,8)}...
+                        </div>
+                        <div className="text-xs text-slate-400 uppercase font-bold tracking-wider">
+                          Status: {statusLabel}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {(statusLabel === "pending" || statusLabel === "approved") && (
+                          <button 
+                            onClick={() => handleCancel(res.publicKey, res.account.equipmentPda)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                          >
+                            <XCircle className="w-3 h-3" /> Cancel
+                          </button>
+                        )}
+                        {statusLabel === "approved" && (
+                          <button 
+                            onClick={() => handleComplete(res.publicKey, res.account.equipmentPda)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                          >
+                            <CheckCircle2 className="w-3 h-3" /> Complete
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
-                      isAvailable ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10' : 
-                      'text-amber-400 border-amber-400/20 bg-amber-400/10'
-                    }`}>
-                      {Object.keys(eq.account.status)[0].toUpperCase()}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-1">{eq.account.name}</h3>
-                  <p className="text-sm text-slate-400">{eq.account.category}</p>
-                  <div className="mt-4 pt-4 border-t border-white/5 text-xs text-slate-500 flex items-center gap-2">
-                     <span className="w-2 h-2 rounded-full bg-cyan-500/50" />
-                     {eq.account.lab}
-                  </div>
-                </motion.div>
-              )
-            })
-          )}
+                  )
+                })
+              )}
+            </div>
+          </motion.div>
+
+          {/* Equipment Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {loading ? (
+               <div className="col-span-2 text-slate-400">Loading catalog...</div>
+            ) : equipmentList.length === 0 ? (
+               <div className="col-span-2 text-slate-500 italic">No equipment registered yet.</div>
+            ) : (
+              equipmentList.map((eq, i) => {
+                const statusStr = Object.keys(eq.account.status)[0];
+                const isAvailable = statusStr === "available";
+                return (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    transition={{ delay: i * 0.05 }}
+                    key={eq.publicKey.toBase58()} 
+                    onClick={() => isAvailable && setSelectedEq(eq)}
+                    className={`glass-card p-6 cursor-pointer transition-all ${isAvailable ? 'hover:border-cyan-500/50 hover:bg-white/10' : 'opacity-50 grayscale cursor-not-allowed'}`}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
+                        <Microscope className="w-5 h-5 text-slate-300" />
+                      </div>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
+                        isAvailable ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10' : 
+                        'text-amber-400 border-amber-400/20 bg-amber-400/10'
+                      }`}>
+                        {statusStr.toUpperCase()}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-1">{eq.account.name}</h3>
+                    <p className="text-sm text-slate-400">{eq.account.category}</p>
+                    <div className="mt-4 pt-4 border-t border-white/5 text-xs text-slate-500 flex items-center gap-2">
+                       <span className="w-2 h-2 rounded-full bg-cyan-500/50" />
+                       {eq.account.lab}
+                    </div>
+                  </motion.div>
+                )
+              })
+            )}
+          </div>
         </div>
 
         {/* Booking Sidebar */}

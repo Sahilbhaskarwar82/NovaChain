@@ -1,1 +1,892 @@
-{"address":"E5tjhztUxbo3Aa6Up8wH4NucXDzhcez56haLm5DbShiw","metadata":{"name":"novachain","version":"0.1.0","spec":"0.1.0","description":"Created with Anchor"},"instructions":[{"name":"approve_reservation","docs":["Faculty approves or rejects a pending reservation."],"discriminator":[124,69,114,146,241,183,0,209],"accounts":[{"name":"faculty_wallet","writable":true,"signer":true},{"name":"faculty"},{"name":"reservation","writable":true},{"name":"equipment","writable":true}],"args":[{"name":"approve","type":"bool"}]},{"name":"create_reservation","docs":["Researcher requests a reservation for a piece of equipment."],"discriminator":[77,169,79,96,59,169,4,25],"accounts":[{"name":"researcher_wallet","writable":true,"signer":true},{"name":"researcher"},{"name":"equipment","writable":true},{"name":"reservation","writable":true,"pda":{"seeds":[{"kind":"const","value":[114,101,115,101,114,118,97,116,105,111,110]},{"kind":"arg","path":"_reservation_id"}]}},{"name":"system_program","address":"11111111111111111111111111111111"}],"args":[{"name":"_reservation_id","type":"string"},{"name":"start_time","type":"i64"},{"name":"end_time","type":"i64"}]},{"name":"initialize","docs":["Initialize the global state and set the admin authority."],"discriminator":[175,175,109,31,13,152,155,237],"accounts":[{"name":"global_state","writable":true,"pda":{"seeds":[{"kind":"const","value":[103,108,111,98,97,108,95,115,116,97,116,101]}]}},{"name":"admin","writable":true,"signer":true},{"name":"system_program","address":"11111111111111111111111111111111"}],"args":[{"name":"merkle_tree","type":"pubkey"}]},{"name":"publish_paper","docs":["Faculty issues a research publication cNFT for a researcher."],"discriminator":[132,116,126,224,32,207,19,18],"accounts":[{"name":"faculty_wallet","writable":true,"signer":true},{"name":"faculty"},{"name":"global_state"},{"name":"researcher_wallet"},{"name":"system_program","address":"11111111111111111111111111111111"}],"args":[{"name":"_title","type":"string"},{"name":"_doi","type":"string"},{"name":"_cnft_asset_id","type":{"array":["u8",32]}}]},{"name":"register_equipment","docs":["Admin registers lab equipment and mints a Compressed NFT via Bubblegum."],"discriminator":[25,237,11,242,149,44,164,228],"accounts":[{"name":"global_state","writable":true},{"name":"admin","writable":true,"signer":true,"relations":["global_state"]},{"name":"equipment","writable":true,"pda":{"seeds":[{"kind":"const","value":[101,113,117,105,112,109,101,110,116]},{"kind":"arg","path":"name"}]}},{"name":"system_program","address":"11111111111111111111111111111111"}],"args":[{"name":"name","type":"string"},{"name":"category","type":"string"},{"name":"lab","type":"string"},{"name":"cnft_asset_id","type":{"array":["u8",32]}}]},{"name":"register_user","docs":["Admin registers a Faculty or Researcher and mints their Soulbound Identity."],"discriminator":[2,241,150,223,99,214,116,97],"accounts":[{"name":"global_state","writable":true},{"name":"admin","writable":true,"signer":true,"relations":["global_state"]},{"name":"user_wallet"},{"name":"researcher","writable":true,"pda":{"seeds":[{"kind":"const","value":[114,101,115,101,97,114,99,104,101,114]},{"kind":"account","path":"user_wallet"}]}},{"name":"system_program","address":"11111111111111111111111111111111"}],"args":[{"name":"role","type":{"defined":{"name":"Role"}}},{"name":"department","type":"string"},{"name":"name","type":"string"},{"name":"sbt_mint","type":"pubkey"}]}],"accounts":[{"name":"Equipment","discriminator":[96,101,21,125,255,60,106,143]},{"name":"GlobalState","discriminator":[163,46,74,168,216,123,133,98]},{"name":"Researcher","discriminator":[243,174,32,21,114,43,106,76]},{"name":"Reservation","discriminator":[188,235,0,111,208,253,247,212]}],"errors":[{"code":6000,"name":"Unauthorized","msg":"You are not authorized to perform this action."},{"code":6001,"name":"EquipmentNotAvailable","msg":"The equipment is currently not available for reservation."},{"code":6002,"name":"InvalidTimeRange","msg":"Invalid time range: start must be before end."}],"types":[{"name":"Equipment","type":{"kind":"struct","fields":[{"name":"name","type":"string"},{"name":"category","type":"string"},{"name":"lab","type":"string"},{"name":"status","type":{"defined":{"name":"EquipmentStatus"}}},{"name":"cnft_asset_id","type":{"array":["u8",32]}}]}},{"name":"EquipmentStatus","type":{"kind":"enum","variants":[{"name":"Available"},{"name":"Reserved"},{"name":"InUse"}]}},{"name":"GlobalState","type":{"kind":"struct","fields":[{"name":"admin","type":"pubkey"},{"name":"merkle_tree","type":"pubkey"}]}},{"name":"Researcher","type":{"kind":"struct","fields":[{"name":"authority","type":"pubkey"},{"name":"role","type":{"defined":{"name":"Role"}}},{"name":"department","type":"string"},{"name":"name","type":"string"},{"name":"sbt_mint","type":"pubkey"}]}},{"name":"Reservation","type":{"kind":"struct","fields":[{"name":"equipment_pda","type":"pubkey"},{"name":"researcher_pda","type":"pubkey"},{"name":"start_time","type":"i64"},{"name":"end_time","type":"i64"},{"name":"status","type":{"defined":{"name":"ReservationStatus"}}}]}},{"name":"ReservationStatus","type":{"kind":"enum","variants":[{"name":"Pending"},{"name":"Approved"},{"name":"Rejected"}]}},{"name":"Role","type":{"kind":"enum","variants":[{"name":"Admin"},{"name":"Faculty"},{"name":"Researcher"}]}}]}
+{
+  "address": "DBfVgqx6nkAYYGjMQbodBLVgXJa8tDztzZyiragHXxZc",
+  "metadata": {
+    "name": "novachain",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "approve_reservation",
+      "discriminator": [
+        124,
+        69,
+        114,
+        146,
+        241,
+        183,
+        0,
+        209
+      ],
+      "accounts": [
+        {
+          "name": "faculty_wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "faculty"
+        },
+        {
+          "name": "reservation",
+          "writable": true
+        },
+        {
+          "name": "equipment",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "approve",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "cancel_reservation",
+      "discriminator": [
+        72,
+        162,
+        75,
+        180,
+        116,
+        157,
+        146,
+        172
+      ],
+      "accounts": [
+        {
+          "name": "researcher_wallet",
+          "signer": true
+        },
+        {
+          "name": "researcher"
+        },
+        {
+          "name": "reservation",
+          "writable": true
+        },
+        {
+          "name": "equipment",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "complete_reservation",
+      "discriminator": [
+        240,
+        248,
+        50,
+        110,
+        107,
+        86,
+        98,
+        122
+      ],
+      "accounts": [
+        {
+          "name": "reservation",
+          "writable": true
+        },
+        {
+          "name": "equipment",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_reservation",
+      "discriminator": [
+        77,
+        169,
+        79,
+        96,
+        59,
+        169,
+        4,
+        25
+      ],
+      "accounts": [
+        {
+          "name": "researcher_wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "researcher"
+        },
+        {
+          "name": "equipment",
+          "writable": true
+        },
+        {
+          "name": "reservation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  101,
+                  114,
+                  118,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "_reservation_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "_reservation_id",
+          "type": "string"
+        },
+        {
+          "name": "start_time",
+          "type": "i64"
+        },
+        {
+          "name": "end_time",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "decommission_equipment",
+      "discriminator": [
+        59,
+        96,
+        195,
+        194,
+        76,
+        62,
+        24,
+        43
+      ],
+      "accounts": [
+        {
+          "name": "global_state"
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "global_state"
+          ]
+        },
+        {
+          "name": "equipment",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "merkle_tree",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "publish_paper",
+      "discriminator": [
+        132,
+        116,
+        126,
+        224,
+        32,
+        207,
+        19,
+        18
+      ],
+      "accounts": [
+        {
+          "name": "faculty_wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "faculty"
+        },
+        {
+          "name": "global_state"
+        },
+        {
+          "name": "researcher_wallet"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "_title",
+          "type": "string"
+        },
+        {
+          "name": "_doi",
+          "type": "string"
+        },
+        {
+          "name": "_uri",
+          "type": "string"
+        },
+        {
+          "name": "_cnft_asset_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "register_equipment",
+      "discriminator": [
+        25,
+        237,
+        11,
+        242,
+        149,
+        44,
+        164,
+        228
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global_state"
+          ]
+        },
+        {
+          "name": "equipment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  113,
+                  117,
+                  105,
+                  112,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "category",
+          "type": "string"
+        },
+        {
+          "name": "lab",
+          "type": "string"
+        },
+        {
+          "name": "serial_number",
+          "type": "string"
+        },
+        {
+          "name": "department",
+          "type": "string"
+        },
+        {
+          "name": "uri",
+          "type": "string"
+        },
+        {
+          "name": "cnft_asset_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "register_user",
+      "discriminator": [
+        2,
+        241,
+        150,
+        223,
+        99,
+        214,
+        116,
+        97
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global_state"
+          ]
+        },
+        {
+          "name": "user_wallet"
+        },
+        {
+          "name": "researcher",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  101,
+                  97,
+                  114,
+                  99,
+                  104,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "role",
+          "type": {
+            "defined": {
+              "name": "Role"
+            }
+          }
+        },
+        {
+          "name": "department",
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "sbt_mint",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "reinstate_user",
+      "discriminator": [
+        149,
+        34,
+        128,
+        114,
+        8,
+        172,
+        158,
+        75
+      ],
+      "accounts": [
+        {
+          "name": "global_state"
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "global_state"
+          ]
+        },
+        {
+          "name": "researcher",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "revoke_user",
+      "discriminator": [
+        218,
+        157,
+        199,
+        179,
+        146,
+        143,
+        101,
+        25
+      ],
+      "accounts": [
+        {
+          "name": "global_state"
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "global_state"
+          ]
+        },
+        {
+          "name": "researcher",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_user_role",
+      "discriminator": [
+        71,
+        250,
+        233,
+        60,
+        60,
+        174,
+        150,
+        125
+      ],
+      "accounts": [
+        {
+          "name": "global_state"
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "global_state"
+          ]
+        },
+        {
+          "name": "researcher",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_role",
+          "type": {
+            "defined": {
+              "name": "Role"
+            }
+          }
+        },
+        {
+          "name": "new_department",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Equipment",
+      "discriminator": [
+        96,
+        101,
+        21,
+        125,
+        255,
+        60,
+        106,
+        143
+      ]
+    },
+    {
+      "name": "GlobalState",
+      "discriminator": [
+        163,
+        46,
+        74,
+        168,
+        216,
+        123,
+        133,
+        98
+      ]
+    },
+    {
+      "name": "Researcher",
+      "discriminator": [
+        243,
+        174,
+        32,
+        21,
+        114,
+        43,
+        106,
+        76
+      ]
+    },
+    {
+      "name": "Reservation",
+      "discriminator": [
+        188,
+        235,
+        0,
+        111,
+        208,
+        253,
+        247,
+        212
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "You are not authorized to perform this action."
+    },
+    {
+      "code": 6001,
+      "name": "AccountRevoked",
+      "msg": "Your account has been revoked."
+    },
+    {
+      "code": 6002,
+      "name": "EquipmentNotAvailable",
+      "msg": "The equipment is currently not available."
+    },
+    {
+      "code": 6003,
+      "name": "InvalidTimeRange",
+      "msg": "Invalid time range: start must be before end."
+    },
+    {
+      "code": 6004,
+      "name": "ReservationNotEnded",
+      "msg": "The reservation time has not yet ended."
+    }
+  ],
+  "types": [
+    {
+      "name": "Equipment",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "name": "lab",
+            "type": "string"
+          },
+          {
+            "name": "serial_number",
+            "type": "string"
+          },
+          {
+            "name": "department",
+            "type": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "EquipmentStatus"
+              }
+            }
+          },
+          {
+            "name": "cnft_asset_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "EquipmentStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Available"
+          },
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Reserved"
+          },
+          {
+            "name": "InUse"
+          },
+          {
+            "name": "Decommissioned"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GlobalState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "merkle_tree",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Researcher",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": {
+              "defined": {
+                "name": "Role"
+              }
+            }
+          },
+          {
+            "name": "department",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "sbt_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "UserStatus"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Reservation",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "equipment_pda",
+            "type": "pubkey"
+          },
+          {
+            "name": "researcher_pda",
+            "type": "pubkey"
+          },
+          {
+            "name": "start_time",
+            "type": "i64"
+          },
+          {
+            "name": "end_time",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "ReservationStatus"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReservationStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Approved"
+          },
+          {
+            "name": "Rejected"
+          },
+          {
+            "name": "Cancelled"
+          },
+          {
+            "name": "Completed"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Role",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Admin"
+          },
+          {
+            "name": "Faculty"
+          },
+          {
+            "name": "Researcher"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Revoked"
+          }
+        ]
+      }
+    }
+  ]
+}

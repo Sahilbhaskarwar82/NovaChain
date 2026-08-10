@@ -11,6 +11,7 @@ import {
   getGlobalStatePDA 
 } from "@/lib/solana/anchor";
 import { generateMockAssetId } from "@/lib/solana/umi";
+import { uploadFileToPinata } from "@/lib/solana/pinata";
 import { motion } from "framer-motion";
 import { BookOpen, Check, X, FileText } from "lucide-react";
 
@@ -36,6 +37,7 @@ export default function FacultyDashboard() {
   const [title, setTitle] = useState("");
   const [doi, setDoi] = useState("");
   const [authorWallet, setAuthorWallet] = useState("");
+  const [paperPdf, setPaperPdf] = useState<File | null>(null);
   const [publishLoading, setPublishLoading] = useState(false);
 
   const fetchReservations = async () => {
@@ -85,9 +87,21 @@ export default function FacultyDashboard() {
   const handlePublishPaper = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!anchorWallet || !publicKey) return;
+    if (!paperPdf) {
+      alert("Please select a PDF file for the research paper.");
+      return;
+    }
 
     setPublishLoading(true);
     try {
+      // 1. Upload PDF to Pinata
+      let pdfUri = "";
+      try {
+        pdfUri = await uploadFileToPinata(paperPdf);
+      } catch (err: any) {
+        throw new Error(`IPFS Upload Failed: ${err.message}`);
+      }
+
       const provider = new AnchorProvider(connection, anchorWallet, {});
       const program = getProgram(provider);
       
@@ -96,7 +110,7 @@ export default function FacultyDashboard() {
       const mockAssetId = generateMockAssetId();
 
       await program.methods
-        .publishPaper(title, doi, mockAssetId)
+        .publishPaper(title, doi, pdfUri, mockAssetId)
         .accounts({
           facultyWallet: publicKey,
           faculty: facultyPDA,
@@ -110,6 +124,7 @@ export default function FacultyDashboard() {
       setTitle("");
       setDoi("");
       setAuthorWallet("");
+      setPaperPdf(null);
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     } finally {
@@ -221,13 +236,23 @@ export default function FacultyDashboard() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">Research Paper (PDF)</label>
+              <input 
+                type="file" 
+                accept="application/pdf"
+                onChange={(e) => setPaperPdf(e.target.files?.[0] || null)}
+                className="w-full bg-[#0a0a0a] border border-white/10 rounded-lg px-4 py-2 text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-500/10 file:text-amber-400 hover:file:bg-amber-500/20"
+              />
+            </div>
+
             <div className="pt-2">
               <button 
                 disabled={publishLoading}
                 type="submit"
                 className="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {publishLoading ? "Publishing..." : "Mint Publication cNFT"}
+                {publishLoading ? "Uploading & Publishing..." : "Mint Publication cNFT"}
               </button>
             </div>
           </form>
