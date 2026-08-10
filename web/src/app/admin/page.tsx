@@ -15,10 +15,13 @@ import { generateMockAssetId } from "@/lib/solana/umi";
 import { uploadFileToPinata } from "@/lib/solana/pinata";
 import { motion } from "framer-motion";
 import { Shield, Microscope, Plus, UserPlus, Settings, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function AdminDashboard() {
   const { publicKey } = useWallet();
   const anchorWallet = useAnchorWallet();
+  const router = useRouter();
 
   // Register User State
   const [role, setRole] = useState<"Faculty" | "Researcher">("Researcher");
@@ -47,7 +50,10 @@ export default function AdminDashboard() {
 
   const handleRegisterUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!anchorWallet || !publicKey) return;
+    if (!anchorWallet || !publicKey) {
+      alert("Please connect your wallet first.");
+      return;
+    }
 
     setLoading(true);
     setTxHash("");
@@ -222,9 +228,13 @@ export default function AdminDashboard() {
     }
   };
 
-  if (!publicKey) {
-    return <div className="text-center mt-20 text-slate-400">Please connect your wallet...</div>;
-  }
+  useEffect(() => {
+    if (!publicKey) {
+      router.push("/");
+    }
+  }, [publicKey, router]);
+
+  if (!publicKey) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">

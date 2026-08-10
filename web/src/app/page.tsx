@@ -13,6 +13,9 @@ export default function LandingPage() {
   const { publicKey, wallet } = useWallet();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!publicKey) return;
@@ -37,6 +40,12 @@ export default function LandingPage() {
         const researcher = await program.account.researcher.fetch(researcherPDA).catch(() => null);
 
         if (researcher) {
+          const status = researcher.status as any;
+          if (status.revoked !== undefined) {
+            alert("Your account has been revoked by the administrator.");
+            return;
+          }
+
           const r = researcher.role as any;
           if (r.faculty) {
              if (isMounted) router.push("/faculty");
@@ -80,16 +89,18 @@ export default function LandingPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
           {!publicKey ? (
             <div className="transform scale-125 origin-center">
-              <WalletMultiButton 
-                style={{
-                  background: "linear-gradient(135deg, #7c3aed, #0891b2)",
-                  borderRadius: "12px",
-                  height: "48px",
-                  fontSize: "16px",
-                  fontWeight: 600,
-                  boxShadow: "0 0 20px rgba(124, 58, 237, 0.3)"
-                }}
-              />
+              {mounted && (
+                <WalletMultiButton 
+                  style={{
+                    background: "linear-gradient(135deg, #7c3aed, #0891b2)",
+                    borderRadius: "12px",
+                    height: "48px",
+                    fontSize: "16px",
+                    fontWeight: 600,
+                    boxShadow: "0 0 20px rgba(124, 58, 237, 0.3)"
+                  }}
+                />
+              )}
             </div>
           ) : loading ? (
             <div className="flex items-center gap-3 text-violet-400 font-medium bg-violet-500/10 px-6 py-3 rounded-full border border-violet-500/20 glass">

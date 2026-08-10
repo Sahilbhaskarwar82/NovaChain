@@ -12,6 +12,7 @@ import {
 } from "@/lib/solana/anchor";
 import { motion } from "framer-motion";
 import { Microscope, Calendar, Clock, List, XCircle, CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type Equipment = {
   publicKey: PublicKey;
@@ -37,6 +38,7 @@ type Reservation = {
 export default function ResearcherDashboard() {
   const { publicKey } = useWallet();
   const anchorWallet = useAnchorWallet();
+  const router = useRouter();
 
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [myReservations, setMyReservations] = useState<Reservation[]>([]);
@@ -151,9 +153,13 @@ export default function ResearcherDashboard() {
     }
   };
 
-  if (!publicKey) {
-    return <div className="text-center mt-20 text-slate-400">Please connect your wallet...</div>;
-  }
+  useEffect(() => {
+    if (!publicKey) {
+      router.push("/");
+    }
+  }, [publicKey, router]);
+
+  if (!publicKey) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">

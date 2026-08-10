@@ -14,6 +14,7 @@ import { generateMockAssetId } from "@/lib/solana/umi";
 import { uploadFileToPinata } from "@/lib/solana/pinata";
 import { motion } from "framer-motion";
 import { BookOpen, Check, X, FileText } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type Reservation = {
   publicKey: PublicKey;
@@ -29,6 +30,7 @@ type Reservation = {
 export default function FacultyDashboard() {
   const { publicKey } = useWallet();
   const anchorWallet = useAnchorWallet();
+  const router = useRouter();
 
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +41,8 @@ export default function FacultyDashboard() {
   const [authorWallet, setAuthorWallet] = useState("");
   const [paperPdf, setPaperPdf] = useState<File | null>(null);
   const [publishLoading, setPublishLoading] = useState(false);
+  const [txHash, setTxHash] = useState("");
+  const [publishedUri, setPublishedUri] = useState("");
 
   const fetchReservations = async () => {
     if (!anchorWallet) return;
@@ -93,6 +97,8 @@ export default function FacultyDashboard() {
     }
 
     setPublishLoading(true);
+    setTxHash("");
+    setPublishedUri("");
     try {
       // 1. Upload PDF to Pinata
       let pdfUri = "";
@@ -109,7 +115,7 @@ export default function FacultyDashboard() {
       const [globalStatePDA] = getGlobalStatePDA();
       const mockAssetId = generateMockAssetId();
 
-      await program.methods
+      const tx = await program.methods
         .publishPaper(title, doi, pdfUri, mockAssetId)
         .accounts({
           facultyWallet: publicKey,
@@ -120,7 +126,8 @@ export default function FacultyDashboard() {
         })
         .rpc();
 
-      alert("Paper published as cNFT!");
+      setTxHash(tx);
+      setPublishedUri(pdfUri);
       setTitle("");
       setDoi("");
       setAuthorWallet("");
@@ -132,9 +139,13 @@ export default function FacultyDashboard() {
     }
   };
 
-  if (!publicKey) {
-    return <div className="text-center mt-20 text-slate-400">Please connect your wallet...</div>;
-  }
+  useEffect(() => {
+    if (!publicKey) {
+      router.push("/");
+    }
+  }, [publicKey, router]);
+
+  if (!publicKey) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
@@ -147,6 +158,26 @@ export default function FacultyDashboard() {
           <p className="text-slate-400 mt-1">Review lab reservations and publish research cNFTs.</p>
         </div>
       </div>
+
+      {txHash && (
+        <div className="mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 break-all space-y-2">
+          <div className="font-semibold text-white">🎉 Publication Minted Successfully!</div>
+          <div>
+            Transaction Hash:{" "}
+            <a href={`https://explorer.solana.com/tx/${txHash}?cluster=devnet`} target="_blank" rel="noreferrer" className="underline font-mono">
+              {txHash}
+            </a>
+          </div>
+          {publishedUri && (
+            <div>
+              IPFS PDF Link:{" "}
+              <a href={publishedUri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")} target="_blank" rel="noreferrer" className="underline font-mono">
+                {publishedUri}
+              </a>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Reservation Queue */}
