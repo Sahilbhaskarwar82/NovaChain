@@ -42,7 +42,7 @@ export function Navbar() {
 
         // Check if this wallet is the admin
         const [globalStatePDA] = getGlobalStatePDA();
-        const gs = await program.account.globalState.fetch(globalStatePDA).catch(() => null);
+        const gs = await (program.account as any).globalState.fetch(globalStatePDA).catch(() => null);
         if (gs && (gs.admin as { toString(): string }).toString() === publicKey.toString()) {
           setRole("Admin");
           return;
@@ -50,7 +50,7 @@ export function Navbar() {
 
         // Otherwise check their researcher PDA role
         const [researcherPDA] = getResearcherPDA(publicKey);
-        const researcher = await program.account.researcher.fetch(researcherPDA).catch(() => null);
+        const researcher = await (program.account as any).researcher.fetch(researcherPDA).catch(() => null);
         if (researcher) {
           const r = researcher.role as Record<string, unknown>;
           if ("faculty" in r) setRole("Faculty");

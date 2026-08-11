@@ -41,6 +41,18 @@ export function getReservationPDA(reservationId: string): [PublicKey, number] {
   );
 }
 
+export async function getPublicationPDA(authorWallet: PublicKey, doi: string): Promise<[PublicKey, number]> {
+  // .slice().buffer gives a plain ArrayBuffer (not ArrayBufferLike) to satisfy Web Crypto
+  const data = new TextEncoder().encode(doi);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data.slice().buffer);
+  const hashArray = new Uint8Array(hashBuffer);
+
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("publication"), authorWallet.toBuffer(), hashArray],
+    PROGRAM_ID
+  );
+}
+
 // ─── Program Instance ─────────────────────────────────────────────────────
 
 export function getProgram(provider: AnchorProvider): Program {

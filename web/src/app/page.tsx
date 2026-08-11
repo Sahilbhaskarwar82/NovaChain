@@ -29,7 +29,7 @@ export default function LandingPage() {
         const program = getProgram(provider);
 
         const [globalStatePDA] = getGlobalStatePDA();
-        const gs = await program.account.globalState.fetch(globalStatePDA).catch(() => null);
+        const gs = await (program.account as any).globalState.fetch(globalStatePDA).catch(() => null);
 
         if (gs && gs.admin.toString() === publicKey.toString()) {
           if (isMounted) router.push("/admin");
@@ -37,7 +37,7 @@ export default function LandingPage() {
         }
 
         const [researcherPDA] = getResearcherPDA(publicKey);
-        const researcher = await program.account.researcher.fetch(researcherPDA).catch(() => null);
+        const researcher = await (program.account as any).researcher.fetch(researcherPDA).catch(() => null);
 
         if (researcher) {
           const status = researcher.status as any;

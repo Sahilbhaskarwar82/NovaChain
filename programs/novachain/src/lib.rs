@@ -74,6 +74,17 @@ pub struct Reservation {
     pub status: ReservationStatus,
 }
 
+#[account]
+pub struct Publication {
+    pub author: Pubkey,
+    pub faculty: Pubkey,
+    pub title: String,
+    pub doi: String,
+    pub uri: String,
+    pub cnft_asset_id: [u8; 32],
+    pub published_at: i64,
+}
+
 // ─────────────────────────────────────────────
 //  Error Codes
 // ─────────────────────────────────────────────
@@ -232,6 +243,10 @@ pub mod novachain {
     }
 
     pub fn complete_reservation(ctx: Context<CompleteReservation>) -> Result<()> {
+        require!(
+            ctx.accounts.reservation.status == ReservationStatus::Approved,
+            ErrorCode::Unauthorized
+        );
         let clock = Clock::get()?;
         require!(
             clock.unix_timestamp > ctx.accounts.reservation.end_time,
@@ -245,15 +260,26 @@ pub mod novachain {
 
     pub fn publish_paper(
         ctx: Context<PublishPaper>,
-        _title: String,
-        _doi: String,
-        _uri: String,
-        _cnft_asset_id: [u8; 32],
+        title: String,
+        doi: String,
+        doi_hash: [u8; 32],
+        uri: String,
+        cnft_asset_id: [u8; 32],
     ) -> Result<()> {
         require!(
             ctx.accounts.faculty.role == Role::Faculty && ctx.accounts.faculty.status == UserStatus::Active,
             ErrorCode::Unauthorized
         );
+
+        let pub_acct = &mut ctx.accounts.publication;
+        pub_acct.author = ctx.accounts.researcher_wallet.key();
+        pub_acct.faculty = ctx.accounts.faculty_wallet.key();
+        pub_acct.title = title;
+        pub_acct.doi = doi;
+        pub_acct.uri = uri;
+        pub_acct.cnft_asset_id = cnft_asset_id;
+        pub_acct.published_at = Clock::get()?.unix_timestamp;
+
         Ok(())
     }
 }
@@ -406,6 +432,7 @@ pub struct CompleteReservation<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(title: String, doi: String, doi_hash: [u8; 32])]
 pub struct PublishPaper<'info> {
     #[account(mut)]
     pub faculty_wallet: Signer<'info>,
@@ -414,5 +441,13 @@ pub struct PublishPaper<'info> {
     pub global_state: Account<'info, GlobalState>,
     /// CHECK: Researcher receiving the publication cNFT
     pub researcher_wallet: UncheckedAccount<'info>,
+    #[account(
+        init,
+        payer = faculty_wallet,
+        space = 8 + 32 + 32 + 4 + 200 + 4 + 100 + 4 + 200 + 32 + 8,
+        seeds = [b"publication", researcher_wallet.key().as_ref(), doi_hash.as_ref()],
+        bump
+    )]
+    pub publication: Account<'info, Publication>,
     pub system_program: Program<'info, System>,
 }

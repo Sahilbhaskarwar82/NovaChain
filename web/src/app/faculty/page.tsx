@@ -25,6 +25,22 @@ type Reservation = {
     endTime: any;
     status: any;
   };
+  equipment?: {
+    name: string;
+    uri: string;
+  };
+};
+
+type Publication = {
+  publicKey: PublicKey;
+  account: {
+    author: PublicKey;
+    faculty: PublicKey;
+    title: string;
+    doi: string;
+    uri: string;
+    publishedAt: any;
+  };
 };
 
 export default function FacultyDashboard() {
@@ -33,6 +49,7 @@ export default function FacultyDashboard() {
   const router = useRouter();
 
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Publish Paper State
@@ -45,14 +62,35 @@ export default function FacultyDashboard() {
   const [publishedUri, setPublishedUri] = useState("");
 
   const fetchReservations = async () => {
-    if (!anchorWallet) return;
+    if (!anchorWallet || !publicKey) return;
     try {
       const provider = new AnchorProvider(connection, anchorWallet, {});
       const program = getProgram(provider);
-      // Fetch all reservations. In production, we'd use an indexer.
-      const res = await program.account.reservation.all();
+      // Fetch all reservations
+      const res = await (program.account as any).reservation.all();
       // Filter for Pending only
-      setReservations(res.filter(r => (r.account.status as any).pending !== undefined));
+      const pendingRes = res.filter((r: any) => (r.account.status as any).pending !== undefined);
+      
+      const enhancedRes = await Promise.all(pendingRes.map(async (r: any) => {
+        try {
+          const eq = await (program.account as any).equipment.fetch(r.account.equipmentPda);
+          return { ...r, equipment: { name: eq.name, uri: eq.uri } };
+        } catch (e) {
+          return r;
+        }
+      }));
+      setReservations(enhancedRes as any);
+
+      // Fetch publications by this faculty
+      const pubs = await (program.account as any).publication.all([
+        {
+          memcmp: {
+            offset: 40, // 8 (discriminator) + 32 (author)
+            bytes: publicKey.toBase58()
+          }
+        }
+      ]);
+      setPublications(pubs as any);
     } catch (e) {
       console.error(e);
     } finally {
@@ -111,19 +149,28 @@ export default function FacultyDashboard() {
       const provider = new AnchorProvider(connection, anchorWallet, {});
       const program = getProgram(provider);
       
+      const authorPubkey = new PublicKey(authorWallet);
       const [facultyPDA] = getResearcherPDA(publicKey);
       const [globalStatePDA] = getGlobalStatePDA();
       const mockAssetId = generateMockAssetId();
 
+      const data = new TextEncoder().encode(doi);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data.slice().buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      
+      const { getPublicationPDA } = await import("@/lib/solana/anchor");
+      const [publicationPDA] = await getPublicationPDA(authorPubkey, doi);
+
       const tx = await program.methods
-        .publishPaper(title, doi, pdfUri, mockAssetId)
+        .publishPaper(title, doi, hashArray, pdfUri, mockAssetId)
         .accounts({
           facultyWallet: publicKey,
           faculty: facultyPDA,
           globalState: globalStatePDA,
-          researcherWallet: new PublicKey(authorWallet),
+          researcherWallet: authorPubkey,
+          publication: publicationPDA,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .rpc();
 
       setTxHash(tx);
@@ -195,12 +242,25 @@ export default function FacultyDashboard() {
             ) : (
               reservations.map((res) => (
                 <div key={res.publicKey.toBase58()} className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-mono text-slate-300 mb-1">
-                      Eq: {res.account.equipmentPda.toBase58().slice(0, 8)}...
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      Req by: {res.account.researcherPda.toBase58().slice(0, 8)}...
+                  <div className="flex items-center gap-3">
+                    {res.equipment?.uri ? (
+                      <img 
+                        src={res.equipment.uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")} 
+                        alt="Eq" 
+                        className="w-10 h-10 rounded object-cover border border-white/10"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center">
+                        <Check className="w-4 h-4 text-slate-500" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-sm font-semibold text-slate-200 mb-0.5">
+                        {res.equipment?.name || `Eq: ${res.account.equipmentPda.toBase58().slice(0, 8)}...`}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        Req by: {res.account.researcherPda.toBase58().slice(0, 8)}...
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -289,6 +349,42 @@ export default function FacultyDashboard() {
           </form>
         </motion.div>
       </div>
+
+      {/* My Publications */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8 glass-card p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <FileText className="text-violet-400" />
+          <h2 className="text-xl font-semibold">Published by You</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {loading ? (
+            <div className="text-slate-400 text-sm">Loading publications...</div>
+          ) : publications.length === 0 ? (
+            <div className="text-slate-500 text-sm italic">You haven't published any papers yet.</div>
+          ) : (
+            publications.map((pub) => (
+              <div key={pub.publicKey.toBase58()} className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-violet-500/30 transition-colors flex flex-col h-full">
+                <h3 className="font-semibold text-lg text-white mb-2 line-clamp-2">{pub.account.title}</h3>
+                <div className="text-xs text-slate-400 mb-4 font-mono">DOI: {pub.account.doi}</div>
+                <div className="mt-auto flex justify-between items-center">
+                  <div className="text-xs text-slate-500">
+                    {new Date(pub.account.publishedAt.toNumber() * 1000).toLocaleDateString()}
+                  </div>
+                  <a 
+                    href={pub.account.uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-xs px-3 py-1.5 rounded-lg bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 transition-colors font-medium"
+                  >
+                    View PDF
+                  </a>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }

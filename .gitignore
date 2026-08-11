@@ -38,3 +38,23 @@ test-ledger/
 
 # Anchor upgrade buffer keypair (auto-generated, not needed in git)
 target/deploy/*-upgrade-buffer.json
+
+# Solana Keypairs & Secrets (CRITICAL SECURITY)
+**/*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!jsconfig.json
+!next.config.json
+!**/*/novachain.json
+!**/Cargo.lock
+!**/Anchor.toml
+*.key
+*.pem
+
+# Next.js build and cache inside subfolders
+web/.next/
+web/out/
+web/node_modules/
+.next/
+node_modules/

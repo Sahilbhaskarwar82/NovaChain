@@ -11,7 +11,7 @@ import {
   getReservationPDA 
 } from "@/lib/solana/anchor";
 import { motion } from "framer-motion";
-import { Microscope, Calendar, Clock, List, XCircle, CheckCircle2 } from "lucide-react";
+import { Microscope, Calendar, Clock, List, XCircle, CheckCircle2, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Equipment = {
@@ -21,6 +21,17 @@ type Equipment = {
     category: string;
     lab: string;
     status: any;
+    uri: string;
+  };
+};
+
+type Publication = {
+  publicKey: PublicKey;
+  account: {
+    title: string;
+    doi: string;
+    uri: string;
+    publishedAt: any;
   };
 };
 
@@ -42,7 +53,9 @@ export default function ResearcherDashboard() {
 
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [myReservations, setMyReservations] = useState<Reservation[]>([]);
+  const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [nowTs, setNowTs] = useState(Math.floor(Date.now() / 1000));
 
   // Booking State
   const [selectedEq, setSelectedEq] = useState<Equipment | null>(null);
@@ -55,11 +68,11 @@ export default function ResearcherDashboard() {
       const provider = new AnchorProvider(connection, anchorWallet, {});
       const program = getProgram(provider);
       
-      const eq = await program.account.equipment.all();
+      const eq = await (program.account as any).equipment.all();
       setEquipmentList(eq as any);
 
       const [myPDA] = getResearcherPDA(publicKey);
-      const res = await program.account.reservation.all([
+      const res = await (program.account as any).reservation.all([
         {
           memcmp: {
             offset: 8 + 32, // skip discriminator and equipment_pda
@@ -68,6 +81,16 @@ export default function ResearcherDashboard() {
         },
       ]);
       setMyReservations(res as any);
+
+      const pubs = await (program.account as any).publication.all([
+        {
+          memcmp: {
+            offset: 8, // skip discriminator
+            bytes: publicKey.toBase58(),
+          },
+        },
+      ]);
+      setPublications(pubs as any);
     } catch (e) {
       console.error(e);
     } finally {
@@ -78,6 +101,25 @@ export default function ResearcherDashboard() {
   useEffect(() => {
     if (anchorWallet) fetchData();
   }, [anchorWallet]);
+
+  useEffect(() => {
+    const int = setInterval(() => {
+      const current = Math.floor(Date.now() / 1000);
+      setNowTs(current);
+      
+      // Auto-complete approved reservations that have expired
+      myReservations.forEach(res => {
+        const statusLabel = Object.keys(res.account.status)[0];
+        if (statusLabel === "approved" && current > res.account.endTime.toNumber()) {
+          if (!(res as any)._autoCompleting) {
+            (res as any)._autoCompleting = true; // prevent spamming
+            handleComplete(res.publicKey, res.account.equipmentPda);
+          }
+        }
+      });
+    }, 1000);
+    return () => clearInterval(int);
+  }, [myReservations, anchorWallet, publicKey]);
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,6 +233,22 @@ export default function ResearcherDashboard() {
               ) : (
                 myReservations.map(res => {
                   const statusLabel = Object.keys(res.account.status)[0];
+                  const endTime = res.account.endTime.toNumber();
+                  const isExpired = nowTs > endTime;
+                  
+                  let timerText = "";
+                  if (statusLabel === "approved") {
+                    if (isExpired) {
+                      timerText = "Expired";
+                    } else {
+                      const remaining = endTime - nowTs;
+                      const h = Math.floor(remaining / 3600);
+                      const m = Math.floor((remaining % 3600) / 60);
+                      const s = remaining % 60;
+                      timerText = `${h}h ${m}m ${s}s`;
+                    }
+                  }
+
                   return (
                     <div key={res.publicKey.toBase58()} className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
                       <div>
@@ -200,6 +258,11 @@ export default function ResearcherDashboard() {
                         <div className="text-xs text-slate-400 uppercase font-bold tracking-wider">
                           Status: {statusLabel}
                         </div>
+                        {statusLabel === "approved" && (
+                          <div className="text-xs text-amber-400 font-mono mt-1">
+                            ⏳ {timerText}
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         {(statusLabel === "pending" || statusLabel === "approved") && (
@@ -246,8 +309,12 @@ export default function ResearcherDashboard() {
                     className={`glass-card p-6 cursor-pointer transition-all ${isAvailable ? 'hover:border-cyan-500/50 hover:bg-white/10' : 'opacity-50 grayscale cursor-not-allowed'}`}
                   >
                     <div className="flex justify-between items-start mb-4">
-                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
-                        <Microscope className="w-5 h-5 text-slate-300" />
+                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
+                        {eq.account.uri ? (
+                          <img src={eq.account.uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")} alt="Eq" className="w-full h-full object-cover" />
+                        ) : (
+                          <Microscope className="w-5 h-5 text-slate-300" />
+                        )}
                       </div>
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
                         isAvailable ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10' : 
@@ -323,6 +390,42 @@ export default function ResearcherDashboard() {
           )}
         </motion.div>
       </div>
+
+      {/* My Publications */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8 glass-card p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <FileText className="text-cyan-400" />
+          <h2 className="text-xl font-semibold">My Published Research</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {loading ? (
+            <div className="text-slate-400 text-sm">Loading publications...</div>
+          ) : publications.length === 0 ? (
+            <div className="text-slate-500 text-sm italic">You don't have any publications yet.</div>
+          ) : (
+            publications.map((pub) => (
+              <div key={pub.publicKey.toBase58()} className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-cyan-500/30 transition-colors flex flex-col h-full">
+                <h3 className="font-semibold text-lg text-white mb-2 line-clamp-2">{pub.account.title}</h3>
+                <div className="text-xs text-slate-400 mb-4 font-mono">DOI: {pub.account.doi}</div>
+                <div className="mt-auto flex justify-between items-center">
+                  <div className="text-xs text-slate-500">
+                    {new Date(pub.account.publishedAt.toNumber() * 1000).toLocaleDateString()}
+                  </div>
+                  <a 
+                    href={pub.account.uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-xs px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors font-medium"
+                  >
+                    View PDF
+                  </a>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }

@@ -285,25 +285,66 @@
           "name": "researcher_wallet"
         },
         {
+          "name": "publication",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  117,
+                  98,
+                  108,
+                  105,
+                  99,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "researcher_wallet"
+              },
+              {
+                "kind": "arg",
+                "path": "doi_hash"
+              }
+            ]
+          }
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "_title",
+          "name": "title",
           "type": "string"
         },
         {
-          "name": "_doi",
+          "name": "doi",
           "type": "string"
         },
         {
-          "name": "_uri",
+          "name": "doi_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "uri",
           "type": "string"
         },
         {
-          "name": "_cnft_asset_id",
+          "name": "cnft_asset_id",
           "type": {
             "array": [
               "u8",
@@ -620,6 +661,19 @@
       ]
     },
     {
+      "name": "Publication",
+      "discriminator": [
+        213,
+        137,
+        189,
+        150,
+        94,
+        132,
+        251,
+        247
+      ]
+    },
+    {
       "name": "Researcher",
       "discriminator": [
         243,
@@ -758,6 +812,47 @@
           {
             "name": "merkle_tree",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Publication",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "faculty",
+            "type": "pubkey"
+          },
+          {
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "doi",
+            "type": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string"
+          },
+          {
+            "name": "cnft_asset_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "published_at",
+            "type": "i64"
           }
         ]
       }
