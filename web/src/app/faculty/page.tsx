@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useWallet, useAnchorWallet } from "@solana/wallet-adapter-react";
-import { AnchorProvider, Program } from "@coral-xyz/anchor";
+import { AnchorProvider } from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { 
   connection, 
@@ -13,7 +13,7 @@ import {
 import { generateMockAssetId } from "@/lib/solana/umi";
 import { uploadFileToPinata } from "@/lib/solana/pinata";
 import { motion } from "framer-motion";
-import { BookOpen, Check, FileText, X, GraduationCap, CheckSquare, Microscope, XCircle, CheckCircle2, Award } from "lucide-react";
+import { FileText, GraduationCap, CheckSquare, Microscope, XCircle, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Reservation = {
