@@ -12,7 +12,10 @@ const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
 const adminKeypair = Keypair.fromSecretKey(secretKey);
 
 // Setup Devnet provider
-const connection = new anchor.web3.Connection("https://api.devnet.solana.com", "confirmed");
+const connection = new anchor.web3.Connection(
+  process.env.NEXT_PUBLIC_RPC_URL || process.env.RPC_URL || "https://api.devnet.solana.com",
+  "confirmed"
+);
 const wallet = new anchor.Wallet(adminKeypair);
 const provider = new anchor.AnchorProvider(connection, wallet, { preflightCommitment: "confirmed" });
 anchor.setProvider(provider);

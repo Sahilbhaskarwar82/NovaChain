@@ -11,7 +11,7 @@ novachain = "E5tjhztUxbo3Aa6Up8wH4NucXDzhcez56haLm5DbShiw"
 novachain = "DBfVgqx6nkAYYGjMQbodBLVgXJa8tDztzZyiragHXxZc"
 
 [provider]
-cluster = "localnet"
+cluster = "https://devnet.helius-rpc.com/?api-key=89aa8e2b-1320-4c84-85af-b2274d1516a9"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
