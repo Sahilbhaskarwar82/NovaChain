@@ -68,8 +68,8 @@ export default function LandingPage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center px-4 py-20 relative overflow-hidden">
       {/* Background Orbs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-500/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -90,16 +90,7 @@ export default function LandingPage() {
           {!publicKey ? (
             <div className="transform scale-125 origin-center">
               {mounted && (
-                <WalletMultiButton 
-                  style={{
-                    background: "linear-gradient(135deg, #7c3aed, #0891b2)",
-                    borderRadius: "12px",
-                    height: "48px",
-                    fontSize: "16px",
-                    fontWeight: 600,
-                    boxShadow: "0 0 20px rgba(124, 58, 237, 0.3)"
-                  }}
-                />
+                <WalletMultiButton />
               )}
             </div>
           ) : loading ? (
@@ -123,18 +114,20 @@ export default function LandingPage() {
         className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-32 max-w-5xl z-10 w-full"
       >
         <FeatureCard 
-          icon={<Shield className="w-6 h-6 text-violet-400" />}
+          icon={<Shield className="w-6 h-6 text-primary-light" />}
           title="Soulbound Identity"
           desc="Role-based access control backed by non-transferable SBTs for Faculty and Researchers."
         />
         <FeatureCard 
-          icon={<Microscope className="w-6 h-6 text-cyan-400" />}
+          icon={<Microscope className="w-6 h-6 text-accent-light" />}
           title="Equipment cNFTs"
+          titleColor="text-white"
           desc="High-value lab instruments tokenized as compressed NFTs for transparent availability tracking."
         />
         <FeatureCard 
           icon={<Award className="w-6 h-6 text-amber-400" />}
           title="Verified Publishing"
+          titleColor="text-white"
           desc="Research papers immutably linked to their authors through Metaplex Bubblegum trees."
         />
       </motion.div>
@@ -142,13 +135,13 @@ export default function LandingPage() {
   );
 }
 
-function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
+function FeatureCard({ icon, title, desc, titleColor = "text-white" }: { icon: React.ReactNode, title: string, desc: string, titleColor?: string }) {
   return (
-    <div className="glass-card p-8 flex flex-col items-center text-center group hover:-translate-y-2 transition-transform duration-300">
-      <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+    <div className="glass-card p-8 flex flex-col items-center text-center group">
+      <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/10">
         {icon}
       </div>
-      <h3 className="text-xl font-semibold text-white mb-3">{title}</h3>
+      <h3 className={`text-xl font-bold ${titleColor} mb-3 tracking-wide`}>{title}</h3>
       <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
     </div>
   );

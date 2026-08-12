@@ -13,7 +13,7 @@ import {
 import { generateMockAssetId } from "@/lib/solana/umi";
 import { uploadFileToPinata } from "@/lib/solana/pinata";
 import { motion } from "framer-motion";
-import { BookOpen, Check, X, FileText } from "lucide-react";
+import { BookOpen, Check, FileText, X, GraduationCap, CheckSquare, Microscope, XCircle, CheckCircle2, Award } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Reservation = {
@@ -196,13 +196,13 @@ export default function FacultyDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-      <div className="flex items-center gap-4 mb-12">
-        <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center glow-violet">
-          <BookOpen className="text-violet-400 w-6 h-6" />
+      <div className="flex items-center gap-5 mb-14">
+        <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center glow-violet shadow-inner">
+          <GraduationCap className="text-primary-light w-7 h-7" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-white">Faculty Dashboard</h1>
-          <p className="text-slate-400 mt-1">Review lab reservations and publish research cNFTs.</p>
+          <h1 className="text-4xl font-extrabold text-white tracking-tight">Faculty Dashboard</h1>
+          <p className="text-slate-400 mt-2 text-lg">Approve equipment bookings and publish on-chain research papers.</p>
         </div>
       </div>
 
@@ -227,12 +227,12 @@ export default function FacultyDashboard() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Reservation Queue */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-8 flex flex-col h-full">
-          <div className="flex items-center gap-3 mb-6">
-            <Check className="text-emerald-400" />
-            <h2 className="text-xl font-semibold">Pending Reservations</h2>
-          </div>
+        <div className="lg:col-span-2 space-y-10">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-8">
+            <div className="flex items-center gap-3 mb-8">
+              <CheckSquare className="text-emerald-400 w-6 h-6" />
+              <h2 className="text-2xl font-bold tracking-wide">Pending Reservations</h2>
+            </div>
           
           <div className="flex-1 overflow-y-auto pr-2 space-y-4">
             {loading ? (
@@ -241,40 +241,36 @@ export default function FacultyDashboard() {
               <div className="text-slate-500 text-sm italic">No pending reservations.</div>
             ) : (
               reservations.map((res) => (
-                <div key={res.publicKey.toBase58()} className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {res.equipment?.uri ? (
-                      <img 
-                        src={res.equipment.uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")} 
-                        alt="Eq" 
-                        className="w-10 h-10 rounded object-cover border border-white/10"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center">
-                        <Check className="w-4 h-4 text-slate-500" />
-                      </div>
-                    )}
+                <div key={res.publicKey.toBase58()} className="p-5 rounded-2xl bg-surface/50 border border-white/5 hover:border-white/10 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                        {res.equipment?.uri ? (
+                          <img src={res.equipment.uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")} alt="Eq" className="w-full h-full object-cover" />
+                        ) : (
+                          <Microscope className="w-6 h-6 text-slate-400" />
+                        )}
+                    </div>
                     <div>
-                      <div className="text-sm font-semibold text-slate-200 mb-0.5">
-                        {res.equipment?.name || `Eq: ${res.account.equipmentPda.toBase58().slice(0, 8)}...`}
+                      <div className="text-sm font-semibold text-white mb-1.5 flex items-center gap-2">
+                        <span className="text-slate-400 font-normal">Researcher:</span> {res.account.researcherPda.toBase58().slice(0,8)}...
                       </div>
-                      <div className="text-xs text-slate-500">
-                        Req by: {res.account.researcherPda.toBase58().slice(0, 8)}...
+                      <div className="text-xs text-slate-400 flex items-center gap-3">
+                        <span className="text-accent-light font-medium">{res.equipment?.name || "Equipment"}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 w-full sm:w-auto">
                     <button 
                       onClick={() => handleApproval(res.publicKey, res.account.equipmentPda, false)}
-                      className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
                     >
-                      <X className="w-4 h-4" />
+                      <XCircle className="w-4 h-4" /> Reject
                     </button>
                     <button 
                       onClick={() => handleApproval(res.publicKey, res.account.equipmentPda, true)}
-                      className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
                     >
-                      <Check className="w-4 h-4" />
+                      <CheckCircle2 className="w-4 h-4" /> Approve
                     </button>
                   </div>
                 </div>
@@ -282,8 +278,8 @@ export default function FacultyDashboard() {
             )}
           </div>
         </motion.div>
+        </div>
 
-        {/* Publish Paper Form */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-8">
           <div className="flex items-center gap-3 mb-6">
             <FileText className="text-amber-400" />
@@ -292,7 +288,7 @@ export default function FacultyDashboard() {
           
           <form onSubmit={handlePublishPaper} className="space-y-5">
             <div>
-              <label className="block text-sm text-slate-400 mb-2">Paper Title</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Paper Title</label>
               <input 
                 type="text" 
                 required
@@ -304,7 +300,7 @@ export default function FacultyDashboard() {
             </div>
 
             <div>
-              <label className="block text-sm text-slate-400 mb-2">DOI (Digital Object Identifier)</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">DOI (Digital Object Identifier)</label>
               <input 
                 type="text" 
                 required
@@ -316,7 +312,7 @@ export default function FacultyDashboard() {
             </div>
             
             <div>
-              <label className="block text-sm text-slate-400 mb-2">Author (Researcher Wallet)</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Author (Researcher Wallet)</label>
               <input 
                 type="text" 
                 required
@@ -328,7 +324,7 @@ export default function FacultyDashboard() {
             </div>
 
             <div>
-              <label className="block text-sm text-slate-400 mb-2">Research Paper (PDF)</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Research Paper (PDF)</label>
               <input 
                 type="file" 
                 accept="application/pdf"
@@ -350,11 +346,10 @@ export default function FacultyDashboard() {
         </motion.div>
       </div>
 
-      {/* My Publications */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8 glass-card p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <FileText className="text-violet-400" />
-          <h2 className="text-xl font-semibold">Published by You</h2>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-12 glass-card p-8">
+        <div className="flex items-center gap-3 mb-8">
+          <FileText className="text-violet-400 w-6 h-6" />
+          <h2 className="text-2xl font-bold tracking-wide">Published by You</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -364,18 +359,18 @@ export default function FacultyDashboard() {
             <div className="text-slate-500 text-sm italic">You haven't published any papers yet.</div>
           ) : (
             publications.map((pub) => (
-              <div key={pub.publicKey.toBase58()} className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-violet-500/30 transition-colors flex flex-col h-full">
-                <h3 className="font-semibold text-lg text-white mb-2 line-clamp-2">{pub.account.title}</h3>
-                <div className="text-xs text-slate-400 mb-4 font-mono">DOI: {pub.account.doi}</div>
+              <div key={pub.publicKey.toBase58()} className="p-6 rounded-2xl bg-surface/50 border border-white/5 hover:border-violet-500/30 transition-all flex flex-col h-full group">
+                <h3 className="font-bold text-lg text-white mb-2 line-clamp-2">{pub.account.title}</h3>
+                <div className="text-xs text-slate-400 mb-6 font-mono p-2 bg-black/20 rounded-lg border border-white/5">DOI: {pub.account.doi}</div>
                 <div className="mt-auto flex justify-between items-center">
-                  <div className="text-xs text-slate-500">
+                  <div className="text-sm font-medium text-slate-500">
                     {new Date(pub.account.publishedAt.toNumber() * 1000).toLocaleDateString()}
                   </div>
                   <a 
                     href={pub.account.uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")} 
                     target="_blank" 
                     rel="noreferrer"
-                    className="text-xs px-3 py-1.5 rounded-lg bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 transition-colors font-medium"
+                    className="text-xs px-4 py-2 rounded-lg bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 transition-colors font-bold"
                   >
                     View PDF
                   </a>

@@ -65,25 +65,25 @@ export function Navbar() {
   }, [publicKey, anchorWallet]);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 backdrop-blur-xl bg-[#080c14]/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-surface/80 backdrop-blur-2xl transition-all duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/40 transition-shadow">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-white">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary-glow group-hover:shadow-accent-glow transition-all duration-500 group-hover:scale-105">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-white">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <span className="font-bold text-white text-lg tracking-tight">NovaChain</span>
+          <span className="font-extrabold text-white text-xl tracking-tight">NovaChain</span>
         </Link>
 
         {/* Nav Links */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-8">
           {role && (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
               <Link
                 href={ROLE_LINKS[role]}
-                className={`text-sm font-medium px-3 py-1 rounded-full border ${ROLE_COLORS[role]} transition-all`}
+                className={`text-sm font-semibold px-4 py-2 rounded-full border ${ROLE_COLORS[role]} shadow-sm transition-all hover:scale-105`}
               >
                 {role} Dashboard
               </Link>
@@ -93,15 +93,7 @@ export function Navbar() {
 
         {/* Wallet — only render on client to avoid SSR/hydration mismatch */}
         {mounted && (
-          <WalletMultiButton
-            style={{
-              background: "linear-gradient(135deg, #7c3aed, #0891b2)",
-              borderRadius: "0.625rem",
-              height: "38px",
-              fontSize: "13px",
-              fontWeight: 600,
-            }}
-          />
+          <WalletMultiButton />
         )}
       </div>
     </nav>

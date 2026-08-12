@@ -205,25 +205,25 @@ export default function ResearcherDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-      <div className="flex items-center gap-4 mb-12">
-        <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center glow-cyan">
-          <Microscope className="text-cyan-400 w-6 h-6" />
+      <div className="flex items-center gap-5 mb-14">
+        <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center glow-cyan shadow-inner">
+          <Microscope className="text-accent-light w-7 h-7" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-white">Equipment Catalog & Booking</h1>
-          <p className="text-slate-400 mt-1">Discover, book, and manage your lab instrument reservations.</p>
+          <h1 className="text-4xl font-extrabold text-white tracking-tight">Equipment Catalog & Booking</h1>
+          <p className="text-slate-400 mt-2 text-lg">Discover, book, and manage your lab instrument reservations.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Column (Equipment & My Reservations) */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-10">
           
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <List className="text-emerald-400" />
-              <h2 className="text-xl font-semibold">My Reservations</h2>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-8">
+            <div className="flex items-center gap-3 mb-8">
+              <List className="text-emerald-400 w-6 h-6" />
+              <h2 className="text-2xl font-bold tracking-wide">My Reservations</h2>
             </div>
             <div className="space-y-4">
               {loading ? (
@@ -250,35 +250,37 @@ export default function ResearcherDashboard() {
                   }
 
                   return (
-                    <div key={res.publicKey.toBase58()} className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+                    <div key={res.publicKey.toBase58()} className="p-5 rounded-2xl bg-surface/50 border border-white/5 hover:border-white/10 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
-                        <div className="text-sm font-medium text-white mb-1">
-                          Equipment: {res.account.equipmentPda.toBase58().slice(0,8)}...
+                        <div className="text-sm font-semibold text-white mb-1.5 flex items-center gap-2">
+                          <span className="text-slate-400 font-normal">Equipment:</span> {res.account.equipmentPda.toBase58().slice(0,8)}...
                         </div>
-                        <div className="text-xs text-slate-400 uppercase font-bold tracking-wider">
-                          Status: {statusLabel}
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs uppercase font-bold tracking-wider px-2 py-1 rounded-md bg-white/5 text-slate-300">
+                            {statusLabel}
+                          </span>
+                          {statusLabel === "approved" && (
+                            <span className="text-xs text-amber-400 font-mono font-bold bg-amber-400/10 px-2 py-1 rounded-md border border-amber-400/20">
+                              ⏳ {timerText}
+                            </span>
+                          )}
                         </div>
-                        {statusLabel === "approved" && (
-                          <div className="text-xs text-amber-400 font-mono mt-1">
-                            ⏳ {timerText}
-                          </div>
-                        )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 w-full sm:w-auto">
                         {(statusLabel === "pending" || statusLabel === "approved") && (
                           <button 
                             onClick={() => handleCancel(res.publicKey, res.account.equipmentPda)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
                           >
-                            <XCircle className="w-3 h-3" /> Cancel
+                            <XCircle className="w-4 h-4" /> Cancel
                           </button>
                         )}
                         {statusLabel === "approved" && (
                           <button 
                             onClick={() => handleComplete(res.publicKey, res.account.equipmentPda)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
                           >
-                            <CheckCircle2 className="w-3 h-3" /> Complete
+                            <CheckCircle2 className="w-4 h-4" /> Complete
                           </button>
                         )}
                       </div>
@@ -306,27 +308,27 @@ export default function ResearcherDashboard() {
                     transition={{ delay: i * 0.05 }}
                     key={eq.publicKey.toBase58()} 
                     onClick={() => isAvailable && setSelectedEq(eq)}
-                    className={`glass-card p-6 cursor-pointer transition-all ${isAvailable ? 'hover:border-cyan-500/50 hover:bg-white/10' : 'opacity-50 grayscale cursor-not-allowed'}`}
+                    className={`glass-card p-6 cursor-pointer ${isAvailable ? 'hover:border-accent hover:shadow-accent-glow' : 'opacity-60 grayscale cursor-not-allowed'}`}
                   >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden">
+                    <div className="flex justify-between items-start mb-5">
+                      <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center overflow-hidden border border-white/10">
                         {eq.account.uri ? (
                           <img src={eq.account.uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")} alt="Eq" className="w-full h-full object-cover" />
                         ) : (
-                          <Microscope className="w-5 h-5 text-slate-300" />
+                          <Microscope className="w-6 h-6 text-slate-400" />
                         )}
                       </div>
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
-                        isAvailable ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10' : 
-                        'text-amber-400 border-amber-400/20 bg-amber-400/10'
+                      <span className={`text-xs font-bold px-3 py-1 rounded-lg border tracking-wide uppercase ${
+                        isAvailable ? 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10' : 
+                        'text-amber-400 border-amber-400/30 bg-amber-400/10'
                       }`}>
-                        {statusStr.toUpperCase()}
+                        {statusStr}
                       </span>
                     </div>
-                    <h3 className="text-lg font-semibold text-white mb-1">{eq.account.name}</h3>
-                    <p className="text-sm text-slate-400">{eq.account.category}</p>
-                    <div className="mt-4 pt-4 border-t border-white/5 text-xs text-slate-500 flex items-center gap-2">
-                       <span className="w-2 h-2 rounded-full bg-cyan-500/50" />
+                    <h3 className="text-xl font-bold text-white mb-1">{eq.account.name}</h3>
+                    <p className="text-sm text-slate-400 font-medium">{eq.account.category}</p>
+                    <div className="mt-5 pt-4 border-t border-white/5 text-xs text-slate-500 flex items-center gap-2 font-mono">
+                       <span className="w-2 h-2 rounded-full bg-accent/50 glow-cyan" />
                        {eq.account.lab}
                     </div>
                   </motion.div>
@@ -337,25 +339,26 @@ export default function ResearcherDashboard() {
         </div>
 
         {/* Booking Sidebar */}
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="glass-card p-8 h-fit sticky top-24">
-          <div className="flex items-center gap-3 mb-6">
-            <Calendar className="text-cyan-400" />
-            <h2 className="text-xl font-semibold">Book Equipment</h2>
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="glass-card p-8 h-fit sticky top-28">
+          <div className="flex items-center gap-3 mb-8">
+            <Calendar className="text-accent-light w-6 h-6" />
+            <h2 className="text-2xl font-bold tracking-wide">Book Equipment</h2>
           </div>
 
           {!selectedEq ? (
-            <div className="text-slate-500 text-sm italic text-center py-8">
+            <div className="text-slate-400 text-sm leading-relaxed text-center py-10 px-4 bg-surface/50 rounded-2xl border border-white/5 border-dashed">
               Select an available piece of equipment from the catalog to request a reservation.
             </div>
           ) : (
-            <form onSubmit={handleBooking} className="space-y-5">
-              <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/20 mb-6">
-                <div className="text-xs text-cyan-400 font-medium mb-1">SELECTED</div>
-                <div className="text-white font-semibold">{selectedEq.account.name}</div>
+            <form onSubmit={handleBooking} className="space-y-6">
+              <div className="p-5 rounded-xl bg-accent/10 border border-accent/20 mb-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-accent/20 blur-2xl rounded-full" />
+                <div className="text-xs text-accent-light font-bold mb-1.5 tracking-widest">SELECTED</div>
+                <div className="text-white font-bold text-lg relative z-10">{selectedEq.account.name}</div>
               </div>
 
               <div>
-                <label className="block text-sm text-slate-400 mb-2">Duration (Hours)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Duration (Hours)</label>
                 <div className="relative">
                   <input 
                     type="number" 
@@ -364,26 +367,26 @@ export default function ResearcherDashboard() {
                     required
                     value={durationHours}
                     onChange={(e) => setDurationHours(e.target.value)}
-                    className="w-full bg-[#0a0a0a] border border-white/10 rounded-lg px-4 py-3 pl-10 text-white focus:outline-none focus:border-cyan-500 transition-colors"
+                    className="glass-input w-full px-4 py-3.5 pl-11 text-lg font-medium"
                   />
-                  <Clock className="absolute left-3 top-3.5 w-4 h-4 text-slate-500" />
+                  <Clock className="absolute left-3.5 top-4 w-5 h-5 text-slate-400" />
                 </div>
               </div>
 
-              <div className="pt-4">
+              <div className="pt-6">
                 <button 
                   disabled={bookingLoading}
                   type="submit"
-                  className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary-light hover:to-accent-light text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {bookingLoading ? "Requesting..." : "Submit Reservation"}
                 </button>
                 <button 
                   type="button"
                   onClick={() => setSelectedEq(null)}
-                  className="w-full mt-3 text-slate-400 hover:text-white text-sm py-2 transition-colors"
+                  className="w-full mt-4 text-slate-400 hover:text-white text-sm font-semibold py-2 transition-colors"
                 >
-                  Cancel
+                  Cancel Selection
                 </button>
               </div>
             </form>
@@ -392,10 +395,10 @@ export default function ResearcherDashboard() {
       </div>
 
       {/* My Publications */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8 glass-card p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <FileText className="text-cyan-400" />
-          <h2 className="text-xl font-semibold">My Published Research</h2>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-12 glass-card p-8">
+        <div className="flex items-center gap-3 mb-8">
+          <FileText className="text-primary-light w-6 h-6" />
+          <h2 className="text-2xl font-bold tracking-wide">My Published Research</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -405,18 +408,18 @@ export default function ResearcherDashboard() {
             <div className="text-slate-500 text-sm italic">You don't have any publications yet.</div>
           ) : (
             publications.map((pub) => (
-              <div key={pub.publicKey.toBase58()} className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-cyan-500/30 transition-colors flex flex-col h-full">
-                <h3 className="font-semibold text-lg text-white mb-2 line-clamp-2">{pub.account.title}</h3>
-                <div className="text-xs text-slate-400 mb-4 font-mono">DOI: {pub.account.doi}</div>
+              <div key={pub.publicKey.toBase58()} className="p-6 rounded-2xl bg-surface/50 border border-white/5 hover:border-primary/30 hover:shadow-primary-glow transition-all flex flex-col h-full group">
+                <h3 className="font-bold text-lg text-white mb-2 line-clamp-2 group-hover:text-primary-light transition-colors">{pub.account.title}</h3>
+                <div className="text-xs text-slate-400 mb-6 font-mono p-2 bg-black/20 rounded-lg border border-white/5">DOI: {pub.account.doi}</div>
                 <div className="mt-auto flex justify-between items-center">
-                  <div className="text-xs text-slate-500">
-                    {new Date(pub.account.publishedAt.toNumber() * 1000).toLocaleDateString()}
+                  <div className="text-sm font-medium text-slate-500">
+                    {new Date(pub.account.publishedAt.toNumber() * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </div>
                   <a 
                     href={pub.account.uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")} 
                     target="_blank" 
                     rel="noreferrer"
-                    className="text-xs px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors font-medium"
+                    className="text-xs px-4 py-2 rounded-lg bg-primary/10 text-primary-light hover:bg-primary/20 border border-primary/20 transition-colors font-bold shadow-sm shadow-primary/10"
                   >
                     View PDF
                   </a>
