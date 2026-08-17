@@ -275,14 +275,6 @@ export default function ResearcherDashboard() {
                             <XCircle className="w-4 h-4" /> Cancel
                           </button>
                         )}
-                        {statusLabel === "approved" && (
-                          <button 
-                            onClick={() => handleComplete(res.publicKey, res.account.equipmentPda)}
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
-                          >
-                            <CheckCircle2 className="w-4 h-4" /> Complete
-                          </button>
-                        )}
                       </div>
                     </div>
                   )
